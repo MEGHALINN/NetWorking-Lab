@@ -1,11 +1,12 @@
-#include<stdio.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<netinet/in.h>
-#include<netdb.h>
-#include<stdlib.h>
-#include<string.h>
-#include<unistd.h>
+// client.c
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 
 #define SERV_TCP_PORT 5035  
@@ -17,24 +18,25 @@ int main()
     struct sockaddr_in serv_addr;
     char send[MAX], recvline[MAX];
 
-    
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
     serv_addr.sin_port = htons(SERV_TCP_PORT);
 
-   
     connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
 
-   
     printf("\nEnter the source file name : \n");
     scanf("%s", send);
 
-    
+    // Send filename to server
     write(sockfd, send, MAX);
 
-    
+    // Read PID from server
+    read(sockfd, recvline, MAX);
+    printf("Server Process ID handling this file: %s\n", recvline);
+
+    // Read file contents from server
     while ((n = read(sockfd, recvline, MAX)) != 0)
     {
         printf("%s", recvline);
@@ -43,4 +45,3 @@ int main()
     close(sockfd);  
     return 0;
 }
-
