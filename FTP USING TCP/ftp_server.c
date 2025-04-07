@@ -1,5 +1,6 @@
-// client.c
+// server.c
 #include <stdio.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -7,41 +8,52 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 
 #define SERV_TCP_PORT 5035  
-#define MAX 60              
+#define MAX 60             
+
+char buff[4096];  
+FILE *f1;
 
 int main()
 {
-    int sockfd, n;
-    struct sockaddr_in serv_addr;
-    char send[MAX], recvline[MAX];
+    int sockfd, newsockfd, clength;
+    struct sockaddr_in serv_addr, cli_addr;
+    char str[MAX], pid_str[MAX];
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
-    serv_addr.sin_port = htons(SERV_TCP_PORT);
+    serv_addr.sin_family = AF_INET;          
+    serv_addr.sin_addr.s_addr = INADDR_ANY;  
+    serv_addr.sin_port = htons(SERV_TCP_PORT); 
 
-    connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+    bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+    listen(sockfd, 5); 
 
-    printf("\nEnter the source file name : \n");
-    scanf("%s", send);
+    clength = sizeof(cli_addr);
+    newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &clength);
+    close(sockfd); 
 
-    // Send filename to server
-    write(sockfd, send, MAX);
+    read(newsockfd, str, MAX);
+    printf("\nClient message\n File Name : %s\n", str);
 
-    // Read PID from server
-    read(sockfd, recvline, MAX);
-    printf("Server Process ID handling this file: %s\n", recvline);
+    // Send server process ID to client
+    sprintf(pid_str, "%d", getpid());
+    write(newsockfd, pid_str, MAX);
 
-    // Read file contents from server
-    while ((n = read(sockfd, recvline, MAX)) != 0)
-    {
-        printf("%s", recvline);
+    f1 = fopen(str, "r");
+    if (!f1) {
+        perror("File not found");
+        return 1;
     }
 
-    close(sockfd);  
+    while (fgets(buff, 4096, f1) != NULL)
+    {
+        write(newsockfd, buff, MAX);
+    }
+
+    fclose(f1);
+    printf("\nFile Transferred\n");
+
     return 0;
 }
